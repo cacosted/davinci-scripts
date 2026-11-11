@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Scripts para DaVinci Resolve</title>
+    <meta
+      name="description"
+      content="Scripts para la consola de DaVinci Resolve: busca, ajusta los parámetros y copia."
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="top">
+      <h1>Scripts para DaVinci Resolve</h1>
+      <p class="lead">
+        Busca un script, ajusta sus parámetros y cópialo listo para pegar en la consola.
+      </p>
+      <details class="howto">
+        <summary>Cómo se usan</summary>
+        <ol>
+          <li>
+            En Resolve abre <strong>Workspace → Console</strong> y elige <strong>Lua</strong>.
+          </li>
+          <li>Copia un paso, pégalo en la consola y presiona Enter.</li>
+          <li>Sigue los pasos en orden. Funcionan también en la versión gratuita.</li>
+        </ol>
+      </details>
+    </header>
+
+    <main>
+      <div class="controls">
+        <input
+          id="search"
+          type="search"
+          placeholder="Buscar scripts…"
+          aria-label="Buscar scripts"
+        />
+        <div id="tags" class="tags" role="group" aria-label="Filtrar por etiqueta"></div>
+      </div>
+      <p id="count" class="count" aria-live="polite"></p>
+      <div id="scripts"></div>
+      <p id="empty" class="empty" hidden>Ningún script coincide con la búsqueda.</p>
+    </main>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
