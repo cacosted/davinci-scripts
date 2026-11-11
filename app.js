@@ -26,8 +26,9 @@ function defaultValues(script) {
 function readInput(param, input) {
   if (param.type === "checkbox") return input.checked;
   if (param.type === "number") {
-    const number = Math.trunc(Number(input.value));
-    return Number.isFinite(number) && number >= param.min ? number : param.default;
+    const number = param.decimals ? Number(input.value) : Math.trunc(Number(input.value));
+    const inRange = number >= param.min && number <= (param.max ?? Infinity);
+    return input.value !== "" && inRange ? number : param.default;
   }
   return input.value.trim();
 }
@@ -46,7 +47,13 @@ function buildInput(param, value) {
   }
   if (param.type === "checkbox") return el("input", { type: "checkbox", checked: value });
   if (param.type === "number")
-    return el("input", { type: "number", min: param.min, step: 1, value });
+    return el("input", {
+      type: "number",
+      min: param.min,
+      max: param.max ?? "",
+      step: param.decimals ? "any" : 1,
+      value,
+    });
   return el("input", { type: "text", value, spellcheck: false });
 }
 
@@ -69,6 +76,10 @@ function buildField(param, values, onChange) {
     values[param.key] = readInput(param, input);
     onChange();
   });
+  // An out-of-range number falls back to the default: show the value the code really uses.
+  if (param.type === "number") {
+    input.addEventListener("change", () => (input.value = values[param.key]));
+  }
   return { param, field, error };
 }
 

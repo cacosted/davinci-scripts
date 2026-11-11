@@ -36,7 +36,119 @@ function startFrameLines(values) {
   ];
 }
 
+const CURRENT_TIMELINE =
+  "tl = resolve:GetProjectManager():GetCurrentProject():GetCurrentTimeline()";
+
+function audioClipLines(values) {
+  if (values.target === "track") {
+    return [`clips = tl:GetItemListInTrack("audio", ${values.trackIndex})`];
+  }
+  return [
+    "clips = {}",
+    "for _, it in ipairs(tl:GetSelectedClips() or {}) do",
+    '  if it:GetType() == "audio" then clips[#clips + 1] = it end',
+    "end",
+  ];
+}
+
 export const scripts = [
+  {
+    id: "quitar-silencios",
+    title: "Quitar los silencios de los audios",
+    summary:
+      "Recorta las pausas de tus locuciones sin cortar a mano: Resolve detecta los tramos por debajo de un volumen, los borra y cierra el hueco. Funciona sobre los clips que tengas seleccionados o sobre una pista entera.",
+    tags: ["Audio", "Silencios", "Cortes"],
+    params: [
+      {
+        key: "target",
+        label: "Aplicar a",
+        type: "select",
+        default: "selected",
+        options: [
+          ["selected", "Clips seleccionados"],
+          ["track", "Toda una pista de audio"],
+        ],
+      },
+      {
+        key: "trackIndex",
+        label: "Número de pista",
+        type: "number",
+        default: 1,
+        min: 1,
+        showIf: (values) => values.target === "track",
+      },
+      {
+        key: "threshold",
+        label: "Umbral de silencio (dB)",
+        type: "number",
+        decimals: true,
+        default: -25,
+        min: -100,
+        max: 10,
+        help: "Lo que suene por debajo de esto cuenta como silencio.",
+      },
+      {
+        key: "minimumToStrip",
+        label: "Silencio mínimo (frames)",
+        type: "number",
+        default: 12,
+        min: 1,
+        help: "Las pausas más cortas se dejan como están.",
+      },
+      {
+        key: "preHead",
+        label: "Margen antes de la voz (frames)",
+        type: "number",
+        default: 2,
+        min: 0,
+      },
+      {
+        key: "postTail",
+        label: "Margen después de la voz (frames)",
+        type: "number",
+        default: 2,
+        min: 0,
+      },
+      {
+        key: "crossFadeAudio",
+        label: "Agregar crossfade en cada corte",
+        type: "checkbox",
+        default: false,
+      },
+    ],
+    steps(values) {
+      return [
+        {
+          title: "Respaldo (opcional)",
+          note: "Duplica el timeline actual con la hora en el nombre, por si el resultado no te gusta.",
+          code: [
+            CURRENT_TIMELINE,
+            'tl:DuplicateTimeline(tl:GetName() .. " respaldo " .. os.date("%H%M%S"))',
+          ],
+        },
+        {
+          title: "Quitar silencios",
+          note: "Procesa los clips del final hacia el inicio y dice en cuántos lo logró.",
+          code: [
+            CURRENT_TIMELINE,
+            ...audioClipLines(values),
+            "table.sort(clips, function(a, b) return a:GetStart() > b:GetStart() end)",
+            `opciones = { threshold = ${values.threshold}, minimumToStrip = ${values.minimumToStrip}, preHead = ${values.preHead}, postTail = ${values.postTail}, crossFadeAudio = ${values.crossFadeAudio} }`,
+            "hechos = 0",
+            "for _, it in ipairs(clips) do",
+            "  if it:RippleDeleteSilence(opciones) then hechos = hechos + 1 end",
+            "end",
+            'print(hechos .. " de " .. #clips .. " clips procesados")',
+          ],
+        },
+      ];
+    },
+    warnings: [
+      "Necesita DaVinci Resolve 21.1.2 o más nuevo. Si responde «0 de N clips procesados», tu versión o tu licencia no permite esta función.",
+      "Después del respaldo, confirma que sigues en el timeline que quieres modificar antes de correr el segundo paso.",
+      "Al cerrar los huecos, comprueba que las demás pistas sigan sincronizadas.",
+    ],
+  },
   {
     id: "borrar-clips-cortos",
     title: "Borrar los microcortes de silencio",
